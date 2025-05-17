@@ -1,0 +1,10 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-17",
+      "path": "d:/jdk17.0.15",
+      "default": true
+    }
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
+}

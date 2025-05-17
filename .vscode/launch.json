@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch Client",
+      "projectName": "yourmod",
+      "request": "launch",    
+      "mainClass": "net.minecraft.client.main.Main",
+      "args": "--username Player --version forge --gameDir run --assetsDir run/assets --assetIndex 1.20 --uuid playeruuid --accessToken token",
+      "vmArgs": "-Xmx2G -Dfml.coreMods.load=com.example.dailymodunlocker.DailyModUnlocker",
+      "cwd": "${workspaceFolder}/run"
+    }
+  ]
+}
