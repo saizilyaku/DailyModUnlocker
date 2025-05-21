@@ -1,5 +1,6 @@
 package com.example.dailymodunlocker;
 
+import com.example.dailymodunlocker.config.ModConfig;
 import net.minecraftforge.fml.ModList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -95,7 +96,7 @@ public class ModUnlockManager extends SavedData {
         }
         tag.put("UnlockedMods", list);
         if (lastUnlockDate != null) {
-            tag.putString("LastUnlockDate", lastUnlockDate.toString()); // 例: "2025-05-15"
+            tag.putString("LastUnlockDate", lastUnlockDate.toString());
         }
         return tag;
     }
@@ -113,6 +114,12 @@ public class ModUnlockManager extends SavedData {
     public void unlockModWithAddons(String modid) {
         if (unlockedMods.add(modid)) {
             setDirty();
+        }
+
+        boolean simultaneous = ModConfig.COMMON.unlockAddonsWithParent.get();
+
+        if (!simultaneous) {
+            return;
         }
 
         List<? extends net.minecraftforge.forgespi.language.IModInfo> allMods = ModList.get().getMods();
@@ -150,8 +157,18 @@ public class ModUnlockManager extends SavedData {
             return;
         }
 
+        boolean simultaneous = ModConfig.COMMON.unlockAddonsWithParent.get();
+
         List<String> lockedMods = getAllMods().stream()
                 .filter(id -> !isUnlocked(id))
+                .filter(id -> {
+                    if (!simultaneous && ModAddonRegistry.isAddon(id)) {
+                        return ModAddonRegistry.getParentToAddonsMap().entrySet().stream()
+                                .filter(e -> e.getValue().contains(id))
+                                .anyMatch(e -> isUnlocked(e.getKey()));
+                    }
+                    return true;
+                })
                 .collect(Collectors.toList());
 
         if (lockedMods.isEmpty()) {

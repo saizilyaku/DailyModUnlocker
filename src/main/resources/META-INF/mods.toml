@@ -1,9 +1,23 @@
 modLoader="javafml"
-loaderVersion="[47,)" # for Forge 1.20.1
+loaderVersion="[47,)" # 対応Forgeバージョン範囲
 license="MIT"
 
 [[mods]]
 modId="dailymodunlocker"
-version="1.0"
+version="${mod_version}"
 displayName="Daily Mod Unlocker"
-description="Unlocks one mod per real-world day"
+updateJSONURL=""
+displayURL=""
+logoFile="logo.png" # 任意のロゴファイル
+credits="Developed by YourName"
+authors="YourName"
+description='''
+Unlocks one mod per real-world day.
+Includes optional support for unlocking mod addons.
+'''
+
+[[mods.config]]
+type="COMMON"
+modId="dailymodunlocker"
+fileName="dailymodunlocker-common.toml"
+spec="com.example.dailymodunlocker.config.ModConfig::COMMON_SPEC"
