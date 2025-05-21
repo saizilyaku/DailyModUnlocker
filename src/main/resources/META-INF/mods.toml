@@ -4,13 +4,13 @@ license="MIT"
 
 [[mods]]
 modId="dailymodunlocker"
-version="${mod_version}"
+version="1.0.11"
 displayName="Daily Mod Unlocker"
 updateJSONURL=""
 displayURL=""
 logoFile="logo.png" # 任意のロゴファイル
-credits="Developed by YourName"
-authors="YourName"
+credits="Developed by Saizilyaku"
+authors="Saizilyaku"
 description='''
 Unlocks one mod per real-world day.
 Includes optional support for unlocking mod addons.

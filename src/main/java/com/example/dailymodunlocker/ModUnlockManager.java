@@ -37,7 +37,7 @@ public class ModUnlockManager extends SavedData {
 
             if (!Files.exists(filePath)) {
                 List<String> defaults = List.of(
-                        "minecraft", "forge",
+                        "minecraft", "forge", "dailymodunlocker",
                         "optifine", "oculus", "rubidium",
                         "sodium", "cloth_config", "architectury", "modmenu");
                 Files.write(filePath, defaults);

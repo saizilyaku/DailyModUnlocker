@@ -1,7 +1,9 @@
 package com.example.dailymodunlocker.config;
 
 import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.common.Mod;
 
+@Mod.EventBusSubscriber(modid = "dailymodunlocker", bus = Mod.EventBusSubscriber.Bus.MOD)
 public class ModConfig {
     public static final ForgeConfigSpec COMMON_SPEC;
     public static final Common COMMON;
