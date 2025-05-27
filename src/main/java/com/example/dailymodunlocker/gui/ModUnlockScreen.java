@@ -1,6 +1,8 @@
 package com.example.dailymodunlocker.gui;
 
 import com.example.dailymodunlocker.ModUnlockManager;
+import com.example.dailymodunlocker.config.ModConfig;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.GuiGraphics;
@@ -10,6 +12,7 @@ import net.minecraft.world.level.Level;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.forgespi.language.IModInfo;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,7 +39,7 @@ public class ModUnlockScreen extends Screen {
         }
 
         // 常時解放されているMODは表示しない
-        Set<String> hiddenMods = ModUnlockManager.loadAlwaysUnlockedMods();
+        Set<String> hiddenMods = new HashSet<>(ModConfig.COMMON.alwaysUnlockedMods.get());
 
         this.displayedMods = ModList.get().getMods().stream()
                 .filter(info -> !hiddenMods.contains(info.getModId()))

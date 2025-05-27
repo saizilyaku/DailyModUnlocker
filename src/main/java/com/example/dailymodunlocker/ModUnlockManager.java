@@ -9,9 +9,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.network.chat.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -20,41 +17,6 @@ import java.util.stream.Collectors;
 public class ModUnlockManager extends SavedData {
 
     private static final String DATA_NAME = "dailymodunlocker_unlocks";
-
-    private static Set<String> alwaysUnlockedMods = new HashSet<>();
-
-    static {
-        loadAlwaysUnlockedMods();
-    }
-
-    public static Set<String> loadAlwaysUnlockedMods() {
-        Path configDir = Path.of("config", "dailymodunlocker");
-        Path filePath = configDir.resolve("always_unlocked_mods.txt");
-
-        try {
-            if (!Files.exists(configDir))
-                Files.createDirectories(configDir);
-
-            if (!Files.exists(filePath)) {
-                List<String> defaults = List.of(
-                        "minecraft", "forge", "dailymodunlocker",
-                        "optifine", "oculus", "rubidium",
-                        "sodium", "cloth_config", "architectury", "modmenu");
-                Files.write(filePath, defaults);
-            }
-
-            alwaysUnlockedMods = Files.readAllLines(filePath).stream()
-                    .map(String::trim)
-                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                    .collect(Collectors.toSet());
-
-            System.out.println("[DailyModUnlocker] 常時解禁MOD: " + alwaysUnlockedMods);
-
-        } catch (IOException e) {
-            System.err.println("[DailyModUnlocker] 例外MOD読み込み失敗: " + e.getMessage());
-        }
-        return alwaysUnlockedMods;
-    }
 
     private final Set<String> unlockedMods = new HashSet<>();
     private LocalDate lastUnlockDate = null;
@@ -101,8 +63,12 @@ public class ModUnlockManager extends SavedData {
         return tag;
     }
 
-    public boolean isUnlocked(String modid) {
-        return alwaysUnlockedMods.contains(modid) || unlockedMods.contains(modid);
+    public boolean isUnlocked(String modId) {
+        // コンフィグに記載された常時解放MODなら true
+        if (ModConfig.COMMON.alwaysUnlockedMods.get().contains(modId)) {
+            return true;
+        }
+        return unlockedMods.contains(modId);
     }
 
     public void unlockMod(String modid) {

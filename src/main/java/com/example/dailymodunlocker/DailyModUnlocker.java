@@ -39,17 +39,15 @@ public class DailyModUnlocker {
         MinecraftForge.EVENT_BUS.register(new SpawnEventHandler());
         MinecraftForge.EVENT_BUS.register(new DropEventHandler());
         MinecraftForge.EVENT_BUS.register(new LoginEventHandler());
-
-        // アドオン構成の読み込み（削除済み ModUnlockManager.init の代替）
-        ModAddonRegistry.loadConfig();
     }
 
     private void setup(final FMLCommonSetupEvent event) {
-        // 必要に応じた初期化処理をここに記述可能
+        event.enqueueWork(() -> {
+            ModAddonRegistry.loadConfig(); // コンフィグが読み込まれた後に安全に呼び出す
+        });
     }
 
     private void onLoadConfig(final ModConfigEvent.Loading event) {
-        // 設定読み込み時の処理が必要であれば記述
         System.out.println("[DailyModUnlocker] コンフィグが読み込まれました。");
     }
 

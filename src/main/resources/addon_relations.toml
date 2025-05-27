@@ -1,5 +1,0 @@
-[tconstruct]
-addons = ["tinkers_tool_leveling", "tinkers_reforged"]
-
-[create]
-addons = ["createaddition", "create_stuff_addon"]

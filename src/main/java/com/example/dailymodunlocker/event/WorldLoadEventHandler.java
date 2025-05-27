@@ -11,10 +11,12 @@ public class WorldLoadEventHandler {
 
     @SubscribeEvent
     public static void onWorldLoad(LevelEvent.Load event) {
-        if (!(event.getLevel() instanceof ServerLevel serverLevel)) return;
+        if (!(event.getLevel() instanceof ServerLevel serverLevel))
+            return;
 
         var server = serverLevel.getServer();
-        if (server == null) return;
+        if (server == null)
+            return;
 
         var manager = ModUnlockManager.getInstance(server);
         manager.tryUnlockNewMod(server);
