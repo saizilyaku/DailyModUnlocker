@@ -28,6 +28,7 @@ public class ModConfig {
         public final ForgeConfigSpec.ConfigValue<List<? extends String>> alwaysUnlockedMods;
 
         public Common(ForgeConfigSpec.Builder builder) {
+            builder.comment("DailyModUnlocker 設定");
             builder.push("general");
 
             unlockAddonsWithParent = builder
@@ -35,7 +36,7 @@ public class ModConfig {
                     .define("unlockAddonsWithParent", true);
 
             addonRelations = builder
-                    .comment("親MOD=アドオン の形式で依存関係を指定します")
+                    .comment("親MOD=アドオン の形式で依存関係を指定します（自動生成）")
                     .defineListAllowEmpty("addonRelations", Collections.emptyList(), o -> o instanceof String);
 
             alwaysUnlockedMods = builder
@@ -50,11 +51,17 @@ public class ModConfig {
         }
     }
 
+    /**
+     * Forge が生成する config/dailymodunlocker-common.toml に、最初の起動時のみ
+     * 依存構成と常時アンロックMODリストを自動書き込みします。
+     */
     private static void generateDefaultConfigIfMissing() {
         try {
             Path configPath = FMLPaths.CONFIGDIR.get().resolve("dailymodunlocker-common.toml");
-            if (Files.exists(configPath))
-                return;
+
+            if (Files.exists(configPath)) {
+                return; // 既に存在する場合はスキップ
+            }
 
             Files.createDirectories(configPath.getParent());
 
@@ -64,11 +71,13 @@ public class ModConfig {
                     .map(entry -> entry.getKey() + "=" + String.join(",", entry.getValue()))
                     .collect(Collectors.toList());
 
-            List<String> alwaysUnlocked = Arrays.asList("minecraft", "forge", "jei", "dailymodunlocker", "optifine",
+            List<String> alwaysUnlocked = Arrays.asList(
+                    "minecraft", "forge", "jei", "dailymodunlocker", "optifine",
                     "oculus", "rubidium", "sodium", "cloth_config", "architectury", "modmenu");
 
             CommentedFileConfig config = CommentedFileConfig.builder(configPath)
                     .autosave()
+                    .sync()
                     .build();
 
             config.load();
@@ -79,24 +88,28 @@ public class ModConfig {
 
             config.save();
             config.close();
+
+            System.out.println("[DailyModUnlocker] 設定ファイル初期生成: " + configPath);
+
         } catch (Exception e) {
-            System.err.println("設定ファイルの初期生成に失敗しました: " + e.getMessage());
+            System.err.println("[DailyModUnlocker] 設定ファイルの初期生成に失敗: " + e.getMessage());
         }
     }
 
+    /**
+     * すべてのMODを確認し、親MOD -> アドオン の構成を自動的に構築します。
+     */
     private static Map<String, List<String>> detectAddonRelations() {
         Map<String, List<String>> result = new HashMap<>();
         var modList = ModList.get().getMods();
 
         for (var mod : modList) {
-            String parent = mod.getModId();
-            List<String> deps = mod.getDependencies().stream()
-                    .map(dep -> dep.getModId())
-                    .filter(dep -> !dep.equals("minecraft") && !dep.equals(parent))
-                    .collect(Collectors.toList());
-
-            if (!deps.isEmpty()) {
-                result.put(parent, deps);
+            String modId = mod.getModId();
+            for (var dep : mod.getDependencies()) {
+                String parentId = dep.getModId();
+                if (!parentId.equals("minecraft") && !parentId.equals(modId)) {
+                    result.computeIfAbsent(parentId, k -> new ArrayList<>()).add(modId);
+                }
             }
         }
 
