@@ -4,7 +4,7 @@ license="MIT"
 
 [[mods]]
 modId="dailymodunlocker"
-version="1.0.13"
+version="1.0.14"
 displayName="Daily Mod Unlocker"
 displayURL="https://www.curseforge.com/minecraft/mc-mods/daily-mod-unlocker"
 logoFile="logo.png" # 任意のロゴファイル
