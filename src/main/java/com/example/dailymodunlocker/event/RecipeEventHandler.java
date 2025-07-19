@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Mod.EventBusSubscriber(modid = "dailymodunlocker")
@@ -32,19 +33,19 @@ public class RecipeEventHandler {
         for (ServerLevel level : server.getAllLevels()) {
             RecipeManager recipeManager = level.getRecipeManager();
 
-            // Step 1: byKey (f_44006_), byType (f_44007_), recipes (f_44008_)
+            // 全レシピのマップを取得（byKey）
             Map<ResourceLocation, Recipe<?>> allRecipesByKey = getMap(recipeManager, "f_44006_"); // byKey
             if (allRecipesByKey == null) {
-                LOGGER.error("[DailyModUnlocker] RecipeManager の byKey 取得失敗");
+                LOGGER.error("[DailyModUnlocker] RecipeManager の byKey 取得に失敗しました。");
                 continue;
             }
 
-            // 解禁済みMODに基づいてレシピをフィルタ
+            // 解禁済みMODのみ抽出
             Map<ResourceLocation, Recipe<?>> allowedByKey = allRecipesByKey.entrySet().stream()
                     .filter(entry -> manager.isUnlocked(entry.getKey().getNamespace()))
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            // byType 再構築
+            // byType を再構築
             Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> allowedByType = new HashMap<>();
             for (Recipe<?> recipe : allowedByKey.values()) {
                 allowedByType
@@ -52,11 +53,11 @@ public class RecipeEventHandler {
                         .put(recipe.getId(), recipe);
             }
 
-            // 書き換え対象フィールド
+            // レシピマネージャの内部フィールドを書き換え
             try {
                 Field recipesField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44008_"); // recipes
-                Field byKeyField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44006_"); // byKey
-                Field byTypeField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44007_"); // byType
+                Field byKeyField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44006_");   // byKey
+                Field byTypeField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44007_");  // byType
 
                 recipesField.setAccessible(true);
                 byKeyField.setAccessible(true);
@@ -66,21 +67,18 @@ public class RecipeEventHandler {
                 byKeyField.set(recipeManager, allowedByKey);
                 byTypeField.set(recipeManager, allowedByType);
 
-                LOGGER.info("[DailyModUnlocker] ワールド '{}': レシピを {} 件に制限しました。",
+                LOGGER.info("[DailyModUnlocker] ワールド '{}': レシピ数を {} 件に制限しました。",
                         level.dimension().location(), allowedByKey.size());
             } catch (Exception e) {
-                LOGGER.error("[DailyModUnlocker] レシピ更新中に例外発生: {}", e.getMessage(), e);
+                LOGGER.error("[DailyModUnlocker] レシピ書き換え中に例外が発生しました: {}", e.getMessage(), e);
             }
         }
 
-        // Step 2: 各プレイヤーの RecipeBook から未解禁MODレシピを除外
-        // プレイヤーのレシピブックから未解禁MODのレシピを削除
+        // 各プレイヤーのレシピブックから未解禁MODのレシピを削除
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             RecipeManager recipeManager = player.serverLevel().getRecipeManager();
-
             Map<ResourceLocation, Recipe<?>> allRecipes = getMap(recipeManager, "f_44006_");
-            if (allRecipes == null)
-                continue;
+            if (allRecipes == null) continue;
 
             Set<ResourceLocation> toRemove = allRecipes.keySet().stream()
                     .filter(id -> !manager.isUnlocked(id.getNamespace()))
@@ -93,10 +91,9 @@ public class RecipeEventHandler {
                 }
             }
 
-            LOGGER.info("[DailyModUnlocker] プレイヤー '{}': {} 件のレシピをレシピブックから削除しました。",
+            LOGGER.info("[DailyModUnlocker] プレイヤー '{}': レシピブックから {} 件のレシピを削除しました。",
                     player.getGameProfile().getName(), toRemove.size());
         }
-
     }
 
     @SuppressWarnings("unchecked")
@@ -106,7 +103,7 @@ public class RecipeEventHandler {
             field.setAccessible(true);
             return (Map<ResourceLocation, Recipe<?>>) field.get(manager);
         } catch (Exception e) {
-            LOGGER.error("RecipeManager のフィールド '{}' 取得失敗: {}", fieldName, e.getMessage());
+            LOGGER.error("RecipeManager のフィールド '{}' の取得に失敗しました: {}", fieldName, e.getMessage());
             return null;
         }
     }
