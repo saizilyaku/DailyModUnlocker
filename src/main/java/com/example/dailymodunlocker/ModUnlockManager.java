@@ -96,9 +96,7 @@ public class ModUnlockManager extends SavedData {
                 .filter(id -> !isUnlocked(id))
                 .collect(Collectors.toList());
 
-        for (String addon : addonMods) {
-            unlockedMods.add(addon);
-        }
+        unlockedMods.addAll(addonMods);
 
         if (!addonMods.isEmpty()) {
             System.out.println("[DailyModUnlocker] " + modid + " に関連するアドオンも解禁: " + addonMods);

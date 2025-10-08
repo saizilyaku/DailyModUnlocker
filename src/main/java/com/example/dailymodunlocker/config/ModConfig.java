@@ -44,7 +44,7 @@ public class ModConfig {
                     .defineListAllowEmpty(
                             "alwaysUnlockedMods",
                             Arrays.asList("minecraft", "forge", "jei", "dailymodunlocker", "optifine",
-                                    "oculus", "rubidium", "sodium", "cloth_config", "architectury", "modmenu"),
+                                    "oculus", "rubidium", "sodium", "cloth_config", "architectury", "mod-menu"),
                             o -> o instanceof String);
 
             builder.pop();
@@ -73,7 +73,7 @@ public class ModConfig {
 
             List<String> alwaysUnlocked = Arrays.asList(
                     "minecraft", "forge", "jei", "dailymodunlocker", "optifine",
-                    "oculus", "rubidium", "sodium", "cloth_config", "architectury", "modmenu");
+                    "oculus", "rubidium", "sodium", "cloth_config", "architectury", "mod-menu");
 
             CommentedFileConfig config = CommentedFileConfig.builder(configPath)
                     .autosave()

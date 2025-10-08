@@ -18,9 +18,9 @@ import net.minecraftforge.fml.event.config.ModConfigEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 
-@Mod(DailyModUnlocker.MODID)
+@Mod(DailyModUnlocker.modid)
 public class DailyModUnlocker {
-    public static final String MODID = "dailymodunlocker";
+    public static final String modid = "dailymodunlocker";
 
     public DailyModUnlocker() {
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();

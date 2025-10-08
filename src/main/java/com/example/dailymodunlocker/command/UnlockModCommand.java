@@ -13,7 +13,7 @@ public class UnlockModCommand {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
-                Commands.literal("unlockmod")
+                Commands.literal("unlock-mod")
                         .requires(source -> source.hasPermission(2)) // OPレベル2以上
                         .then(Commands.argument("modid", StringArgumentType.word())
                                 .executes(context -> {

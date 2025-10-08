@@ -3,108 +3,80 @@ package com.example.dailymodunlocker.event;
 import com.example.dailymodunlocker.ModUnlockManager;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
-import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.util.ObfuscationReflectionHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.Field;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Mod.EventBusSubscriber(modid = "dailymodunlocker")
 public class RecipeEventHandler {
 
     private static final Logger LOGGER = LogManager.getLogger();
+    private static Collection<Recipe<?>> allRecipes = List.of(); // フルレシピのキャッシュ
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
         MinecraftServer server = event.getServer();
+        RecipeManager recipeManager = server.overworld().getRecipeManager();
+
+        // 全レシピをキャッシュしておく
+        allRecipes = List.copyOf(recipeManager.getRecipes());
+        LOGGER.info("[DailyModUnlocker] 全レシピ {} 件をキャッシュしました。", allRecipes.size());
+
+        // 初期制限を適用
+        applyRecipeRestrictions(server);
+    }
+
+    /** MODの解禁状況を反映してレシピ制御を適用 */
+    public static void applyRecipeRestrictions(MinecraftServer server) {
         ModUnlockManager manager = ModUnlockManager.getInstance(server);
 
-        for (ServerLevel level : server.getAllLevels()) {
-            RecipeManager recipeManager = level.getRecipeManager();
+        // 解禁済みレシピのみ抽出
+        Collection<Recipe<?>> allowed = allRecipes.stream()
+                .filter(r -> manager.isUnlocked(r.getId().getNamespace()))
+                .collect(Collectors.toList());
 
-            // 全レシピのマップを取得（byKey）
-            Map<ResourceLocation, Recipe<?>> allRecipesByKey = getMap(recipeManager, "f_44006_"); // byKey
-            if (allRecipesByKey == null) {
-                LOGGER.error("[DailyModUnlocker] RecipeManager の byKey 取得に失敗しました。");
-                continue;
-            }
+        // サーバー全体に適用
+        server.overworld().getRecipeManager().replaceRecipes(allowed);
+        LOGGER.info("[DailyModUnlocker] レシピを {} 件に制限しました。", allowed.size());
 
-            // 解禁済みMODのみ抽出
-            Map<ResourceLocation, Recipe<?>> allowedByKey = allRecipesByKey.entrySet().stream()
-                    .filter(entry -> manager.isUnlocked(entry.getKey().getNamespace()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            // byType を再構築
-            Map<RecipeType<?>, Map<ResourceLocation, Recipe<?>>> allowedByType = new HashMap<>();
-            for (Recipe<?> recipe : allowedByKey.values()) {
-                allowedByType
-                        .computeIfAbsent(recipe.getType(), k -> new HashMap<>())
-                        .put(recipe.getId(), recipe);
-            }
-
-            // レシピマネージャの内部フィールドを書き換え
-            try {
-                Field recipesField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44008_"); // recipes
-                Field byKeyField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44006_");   // byKey
-                Field byTypeField = ObfuscationReflectionHelper.findField(RecipeManager.class, "f_44007_");  // byType
-
-                recipesField.setAccessible(true);
-                byKeyField.setAccessible(true);
-                byTypeField.setAccessible(true);
-
-                recipesField.set(recipeManager, allowedByKey);
-                byKeyField.set(recipeManager, allowedByKey);
-                byTypeField.set(recipeManager, allowedByType);
-
-                LOGGER.info("[DailyModUnlocker] ワールド '{}': レシピ数を {} 件に制限しました。",
-                        level.dimension().location(), allowedByKey.size());
-            } catch (Exception e) {
-                LOGGER.error("[DailyModUnlocker] レシピ書き換え中に例外が発生しました: {}", e.getMessage(), e);
-            }
-        }
-
-        // 各プレイヤーのレシピブックから未解禁MODのレシピを削除
+        // プレイヤーごとに同期
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            RecipeManager recipeManager = player.serverLevel().getRecipeManager();
-            Map<ResourceLocation, Recipe<?>> allRecipes = getMap(recipeManager, "f_44006_");
-            if (allRecipes == null) continue;
-
-            Set<ResourceLocation> toRemove = allRecipes.keySet().stream()
-                    .filter(id -> !manager.isUnlocked(id.getNamespace()))
-                    .collect(Collectors.toSet());
-
-            for (ResourceLocation id : toRemove) {
-                Recipe<?> recipe = allRecipes.get(id);
-                if (recipe != null) {
-                    player.getRecipeBook().remove(recipe);
-                }
-            }
-
-            LOGGER.info("[DailyModUnlocker] プレイヤー '{}': レシピブックから {} 件のレシピを削除しました。",
-                    player.getGameProfile().getName(), toRemove.size());
+            syncPlayerRecipes(player, allowed);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static Map<ResourceLocation, Recipe<?>> getMap(RecipeManager manager, String fieldName) {
-        try {
-            Field field = ObfuscationReflectionHelper.findField(RecipeManager.class, fieldName);
-            field.setAccessible(true);
-            return (Map<ResourceLocation, Recipe<?>>) field.get(manager);
-        } catch (Exception e) {
-            LOGGER.error("RecipeManager のフィールド '{}' の取得に失敗しました: {}", fieldName, e.getMessage());
-            return null;
-        }
+    /** プレイヤーのレシピブックを同期 */
+    private static void syncPlayerRecipes(ServerPlayer player, Collection<Recipe<?>> allowed) {
+        RecipeManager manager = player.serverLevel().getRecipeManager();
+
+        // 全レシピID
+        Set<ResourceLocation> allIds = allRecipes.stream()
+                .map(Recipe::getId).collect(Collectors.toSet());
+        // 有効レシピID
+        Set<ResourceLocation> allowedIds = allowed.stream()
+                .map(Recipe::getId).collect(Collectors.toSet());
+
+        // 削除対象
+        Set<ResourceLocation> toRemove = new HashSet<>(allIds);
+        toRemove.removeAll(allowedIds);
+
+        // 追加対象
+        Set<ResourceLocation> toAdd = new HashSet<>(allowedIds);
+        toAdd.removeIf(id -> player.getRecipeBook().contains(id));
+
+        // 適用
+        toRemove.forEach(id -> manager.byKey(id).ifPresent(player.getRecipeBook()::remove));
+        toAdd.forEach(id -> manager.byKey(id).ifPresent(r -> player.awardRecipes(List.of(r))));
+
+        LOGGER.info("[DailyModUnlocker] プレイヤー '{}': {} 件追加, {} 件削除。",
+                player.getGameProfile().getName(), toAdd.size(), toRemove.size());
     }
 }
