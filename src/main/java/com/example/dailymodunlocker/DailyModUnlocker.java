@@ -23,6 +23,8 @@ public class DailyModUnlocker {
     public static final String modid = "dailymodunlocker";
 
     public DailyModUnlocker() {
+        ModNetwork.registerMessages();
+
         IEventBus modBus = FMLJavaModLoadingContext.get().getModEventBus();
         modBus.addListener(this::setup);
         modBus.addListener(this::onLoadConfig);

@@ -20,6 +20,7 @@ public class RecipeEventHandler {
 
     private static final Logger LOGGER = LogManager.getLogger();
     private static Collection<Recipe<?>> allRecipes = List.of(); // フルレシピのキャッシュ
+    private static boolean recipesCached;
 
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event) {
@@ -28,6 +29,7 @@ public class RecipeEventHandler {
 
         // 全レシピをキャッシュしておく
         allRecipes = List.copyOf(recipeManager.getRecipes());
+        recipesCached = true;
         LOGGER.info("[DailyModUnlocker] 全レシピ {} 件をキャッシュしました。", allRecipes.size());
 
         // 初期制限を適用
@@ -36,6 +38,10 @@ public class RecipeEventHandler {
 
     /** MODの解禁状況を反映してレシピ制御を適用 */
     public static void applyRecipeRestrictions(MinecraftServer server) {
+        if (!recipesCached) {
+            return;
+        }
+
         ModUnlockManager manager = ModUnlockManager.getInstance(server);
 
         // 解禁済みレシピのみ抽出

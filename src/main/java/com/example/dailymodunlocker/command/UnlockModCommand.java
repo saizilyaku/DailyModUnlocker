@@ -1,6 +1,8 @@
 package com.example.dailymodunlocker.command;
 
 import com.example.dailymodunlocker.ModUnlockManager;
+import com.example.dailymodunlocker.ModNetwork;
+import com.example.dailymodunlocker.event.RecipeEventHandler;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 
@@ -28,6 +30,8 @@ public class UnlockModCommand {
                                     }
 
                                     manager.unlockMod(modid);
+                                    RecipeEventHandler.applyRecipeRestrictions(source.getServer());
+                                    ModNetwork.broadcastUnlockState(source.getServer(), manager.getUnlockedMods());
                                     source.sendSuccess(() -> Component.literal("MOD '" + modid + "' を解禁しました。"), true);
 
                                     if (source.getEntity() instanceof ServerPlayer player) {

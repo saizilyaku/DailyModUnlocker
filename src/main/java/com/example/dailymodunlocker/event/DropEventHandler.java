@@ -2,6 +2,7 @@ package com.example.dailymodunlocker.event;
 
 import com.example.dailymodunlocker.ModUnlockManager;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -20,6 +21,9 @@ public class DropEventHandler {
     @SubscribeEvent
     public static void onLivingDrops(LivingDropsEvent event) {
         LivingEntity entity = event.getEntity();
+        if (!(entity.level() instanceof ServerLevel serverLevel)) {
+            return;
+        }
 
         if (entity instanceof Mob mob) {
             ResourceLocation entityId = ForgeRegistries.ENTITY_TYPES.getKey(mob.getType());
@@ -27,8 +31,7 @@ public class DropEventHandler {
 
             String modid = entityId.getNamespace();
 
-            MinecraftServer server = entity.getServer();
-            if (server == null) return;
+            MinecraftServer server = serverLevel.getServer();
 
             ModUnlockManager manager = ModUnlockManager.getInstance(server);
             if (!manager.isUnlocked(modid)) {

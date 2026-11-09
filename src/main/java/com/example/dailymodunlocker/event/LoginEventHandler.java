@@ -1,5 +1,7 @@
 package com.example.dailymodunlocker.event;
 
+import com.example.dailymodunlocker.ModNetwork;
+import com.example.dailymodunlocker.ModUnlockManager;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
@@ -12,6 +14,8 @@ public class LoginEventHandler {
     @SubscribeEvent
     public static void onPlayerLogin(PlayerLoggedInEvent event) {
         if (event.getEntity() instanceof ServerPlayer player) {
+            ModUnlockManager manager = ModUnlockManager.getInstance(player.getServer());
+            ModNetwork.syncUnlockState(player, manager.getUnlockedMods());
             player.sendSystemMessage(Component.literal("§aDaily Mod Unlocker: 現在解禁済みのMODがあります。楽しんでください！"));
         }
     }

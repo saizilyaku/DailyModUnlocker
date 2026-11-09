@@ -1,6 +1,7 @@
 package com.example.dailymodunlocker;
 
 import com.example.dailymodunlocker.config.ModConfig;
+import com.example.dailymodunlocker.event.RecipeEventHandler;
 import net.minecraftforge.fml.ModList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -21,18 +22,13 @@ public class ModUnlockManager extends SavedData {
     private final Set<String> unlockedMods = new HashSet<>();
     private LocalDate lastUnlockDate = null;
 
-    private static ModUnlockManager instance;
-
     public ModUnlockManager() {
         super();
     }
 
     public static ModUnlockManager getInstance(MinecraftServer server) {
-        if (instance == null) {
-            instance = server.overworld().getDataStorage().computeIfAbsent(ModUnlockManager::load,
-                    ModUnlockManager::new, DATA_NAME);
-        }
-        return instance;
+        return server.overworld().getDataStorage().computeIfAbsent(ModUnlockManager::load,
+                ModUnlockManager::new, DATA_NAME);
     }
 
     private static ModUnlockManager load(CompoundTag tag) {
@@ -129,7 +125,7 @@ public class ModUnlockManager extends SavedData {
                     if (!simultaneous && ModAddonRegistry.isAddon(id)) {
                         return ModAddonRegistry.getParentToAddonsMap().entrySet().stream()
                                 .filter(e -> e.getValue().contains(id))
-                                .anyMatch(e -> isUnlocked(e.getKey()));
+                                .noneMatch(e -> isUnlocked(e.getKey()));
                     }
                     return true;
                 })
@@ -145,6 +141,8 @@ public class ModUnlockManager extends SavedData {
         unlockModWithAddons(toUnlock);
         lastUnlockDate = today;
         setDirty();
+        RecipeEventHandler.applyRecipeRestrictions(server);
+        ModNetwork.broadcastUnlockState(server, unlockedMods);
 
         server.sendSystemMessage(Component.literal(
                 "[DailyModUnlocker] MOD '" + toUnlock + "' および関連アドオンが日替わりで解禁されました。"));
